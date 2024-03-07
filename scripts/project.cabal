@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               scripts
+name:               project
 version:            0.1.0.0
 -- synopsis:
 -- description:
@@ -21,6 +21,8 @@ executable scripts
     -- other-modules:    
     -- other-extensions:
     build-depends:    base ^>=4.17.2.1
+                    , optparse-applicative ^>= 0.18.1.0
                     , turtle ^>=1.6.2
+    builddir:         ./out/
     hs-source-dirs:   .
     default-language: GHC2021
