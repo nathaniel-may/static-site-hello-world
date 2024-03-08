@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
 import Options.Applicative
@@ -10,16 +12,18 @@ main = do
     cmd <- customExecParser (prefs showHelpOnEmpty) (info
         (parser <**> helper)
         (fullDesc <> progDesc "Tools for developing and deploying your application"))
-    print $ Build == cmd
-    -- view $ ls "."
+    run cmd
 
 run :: MonadIO m => Command -> m ()
-run Build = liftIO $ print "todo implement build"
-run Serve = liftIO $ print "todo implement serve"
-run Develop = liftIO $ print "todo implement develop"
-run Clean = liftIO $ print "todo implement clean"
+run = liftIO . \case
+    Build -> print "todo implement build"
+    Serve -> print "todo implement serve"
+    Develop -> print "todo implement develop"
+    Clean -> print "todo implement clean"
 
 parser :: Parser Command
 parser = subparser
-     ( command "build"  (info empty ( progDesc "boop" ))
-    <> command "serve"  (info empty ( progDesc "beep" )) )
+     ( command "build"  (info (pure Build) ( progDesc "build everything" ))
+    <> command "serve"  (info (pure Serve) ( progDesc "serve the web app" ))
+    <> command "serve"  (info (pure Serve) ( progDesc "serve the web app" ))
+    <> command "serve"  (info (pure Serve) ( progDesc "serve the web app" )) )
