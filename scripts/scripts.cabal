@@ -15,7 +15,7 @@ build-type:         Simple
 common warnings
     ghc-options: -Wall
 
-executable project
+executable turtle-scripts
     import:           warnings
     main-is:          Main.hs
     -- other-modules:    

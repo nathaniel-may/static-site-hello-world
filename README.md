@@ -16,4 +16,4 @@ TODO put an image here
 TODO table of tools and the errors they push
 
 ## TODO
-- update ./project to reference a static path to the latest executable with no versions and os names. Just gotta figure out how to make cabal do that.
+- 

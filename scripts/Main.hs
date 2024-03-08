@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings #-}
 
 module Main where
 
@@ -7,19 +7,20 @@ import Turtle
 
 data Command = Build | Serve | Develop | Clean deriving (Read, Show, Eq)
 
-main :: IO ()
+main :: IO ExitCode
 main = do
     cmd <- customExecParser (prefs showHelpOnEmpty) (info
         (parser <**> helper)
         (fullDesc <> progDesc "Tools for developing and deploying your application"))
     run cmd
 
-run :: MonadIO m => Command -> m ()
+run :: MonadIO m => Command -> m ExitCode
 run = liftIO . \case
-    Build -> print "todo implement build"
-    Serve -> print "todo implement serve"
-    Develop -> print "todo implement develop"
-    Clean -> print "todo implement clean"
+    Build -> proc "spago" ["build"] empty
+
+    Serve -> ExitSuccess <$ print "todo implement serve"
+    Develop -> ExitSuccess <$ print "todo implement develop"
+    Clean -> ExitSuccess <$ print "todo implement clean"
 
 parser :: Parser Command
 parser = subparser
