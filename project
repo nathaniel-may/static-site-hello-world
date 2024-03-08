@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/dist-newstyle/build/aarch64-osx/ghc-9.4.8/scripts-0.1.0.0/x/scripts/build/scripts/scripts "$@"
+cd scripts && cabal install -v0 exe:project --installdir=dist-newstyle && ./dist-newstyle/project "$@"

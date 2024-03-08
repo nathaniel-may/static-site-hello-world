@@ -1,8 +1,6 @@
 module Main where
 
-import qualified Data.Char as Char
 import Options.Applicative
-import Text.Read (readMaybe)
 import Turtle
 
 data Command = Build | Serve | Develop | Clean deriving (Read, Show, Eq)
