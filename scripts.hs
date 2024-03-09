@@ -19,20 +19,21 @@ import System.FilePath (replaceExtension)
 import qualified System.IO as SYS
 import Turtle
 
-data Command = Build | Serve | Develop | Install | Clean | TestScripts deriving (Read, Show, Eq)
+data App = Run Command | Test deriving (Read, Show, Eq)
+data Command = Build | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
 
 newtype TestingException = TestingException Text deriving (Show)
 instance Exception TestingException
 
 main :: IO ()
 main = do
-    cmd <- customExecParser (prefs showHelpOnEmpty) parser
-    run cmd
+    app <- customExecParser (prefs showHelpOnEmpty) parser
+    run app
 
 -- I use `proc "mkdir" ..` instead of `mkdir` etc. becuase turtle's commands pass over failures by returning () instead of ExitCode
-run :: MonadIO m => Command -> m ()
+run :: MonadIO m => App -> m ()
 run = liftIO . \case
-    Build -> let
+    Run Build -> let
         npmInstall = procs "npm" [ "install" ] empty
         moveStuff = do
             procs "rm" [ "-rf", "dist" ] empty
@@ -54,15 +55,15 @@ run = liftIO . \case
         buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
         in mapConcurrently_ id [ npmInstall, moveStuff, buildStyles, buildJS ]
 
-    Serve   -> print "todo implement serve"
+    Run Serve   -> print "todo implement serve"
         -- look at pushd for serving in a different directory
 
-    Develop -> print "todo implement develop"
+    Run Develop -> print "todo implement develop"
 
-    Install -> print "todo implement install"
+    Run Install -> print "todo implement install"
         -- npm i
 
-    Clean -> let
+    Run Clean -> let
         dirs =
             [ "dist/"
             , "node_modules/"
@@ -73,30 +74,30 @@ run = liftIO . \case
         in forConcurrently_ dirs (\dir ->
             procs "rm" [ "-rf", dir ] empty
         )
-    
-    TestScripts -> let
+
+    Test -> let
         tests =
             [ test "build command parses"
                 (handleParseResult $ execParserPure (prefs showHelpOnEmpty) parser [ "build" ] )
-                (== Build)
+                (== Run Build)
                 "expected build input to produce Build result"
             ]
         in do
             mapConcurrently_ id tests
 
-parser :: ParserInfo Command
+parser :: ParserInfo App
 parser = info
     (subcommands <**> helper)
     (fullDesc <> progDesc "Tools for developing and deploying your application")
     where
-    subcommands :: Parser Command
+    subcommands :: Parser App
     subcommands = subparser
-        (  command "build"        (info (pure Build)       ( progDesc "build everything" ))
-        <> command "serve"        (info (pure Serve)       ( progDesc "serve the web app" ))
-        <> command "develop"      (info (pure Develop)     ( progDesc "serve and watch for source file changes to reload the page" ))
-        <> command "install"      (info (pure Install)     ( progDesc "install build dependencies" ))
-        <> command "clean"        (info (pure Clean)       ( progDesc "delete all build files" ))
-        <> command "test-scripts" (info (pure TestScripts) ( progDesc "test all the scripts in this file" )) )
+        (  command "build"        (info (pure $ Run Build)   ( progDesc "build everything" ))
+        <> command "serve"        (info (pure $ Run Serve)   ( progDesc "serve the web app" ))
+        <> command "develop"      (info (pure $ Run Develop) ( progDesc "serve and watch for source file changes to reload the page" ))
+        <> command "install"      (info (pure $ Run Install) ( progDesc "install build dependencies" ))
+        <> command "clean"        (info (pure $ Run Clean)   ( progDesc "delete all build files" ))
+        <> command "test-scripts" (info (pure Test)          ( progDesc "test all the scripts in this file" )) )
 
 test :: MonadIO m => Text -> m a -> (a -> Bool) -> Text -> m ()
 test name actual fExpected msg = do
