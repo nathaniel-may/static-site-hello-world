@@ -6,16 +6,23 @@
 module Main where
 
 import Control.Concurrent.Async (forConcurrently_, mapConcurrently_)
+import Control.Exception (Exception(..), throwIO)
 import Control.Monad (when)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Options.Applicative
+import System.Console.ANSI
 import System.Exit (ExitCode(..))
 import System.FilePath (replaceExtension)
+import qualified System.IO as SYS
 import Turtle
 
-data Command = Build | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
+data Command = Build | Serve | Develop | Install | Clean | TestScripts deriving (Read, Show, Eq)
+
+newtype TestingException = TestingException Text deriving (Show)
+instance Exception TestingException
 
 main :: IO ()
 main = do
@@ -55,17 +62,27 @@ run = liftIO . \case
     Install -> print "todo implement install"
         -- npm i
 
-    Clean ->
-        let dirs =
-                [ "dist/"
-                , "node_modules/"
-                , "output/"
-                , ".spago/"
-                , ".stack-work/"
-                ]
+    Clean -> let
+        dirs =
+            [ "dist/"
+            , "node_modules/"
+            , "output/"
+            , ".spago/"
+            , ".stack-work/"
+            ]
         in forConcurrently_ dirs (\dir ->
             procs "rm" [ "-rf", dir ] empty
         )
+    
+    TestScripts -> let
+        tests =
+            [ test "build command parses"
+                (handleParseResult $ execParserPure (prefs showHelpOnEmpty) parser [ "build" ] )
+                (== Build)
+                "expected build input to produce Build result"
+            ]
+        in do
+            mapConcurrently_ id tests
 
 parser :: ParserInfo Command
 parser = info
@@ -74,21 +91,27 @@ parser = info
     where
     subcommands :: Parser Command
     subcommands = subparser
-        (  command "build"   (info (pure Build)   ( progDesc "build everything" ))
-        <> command "serve"   (info (pure Serve)   ( progDesc "serve the web app" ))
-        <> command "develop" (info (pure Develop) ( progDesc "serve and watch for source file changes to reload the page" ))
-        <> command "install" (info (pure Install) ( progDesc "install build dependencies" ))
-        <> command "clean"   (info (pure Clean)   ( progDesc "delete all build files" )) )
+        (  command "build"        (info (pure Build)       ( progDesc "build everything" ))
+        <> command "serve"        (info (pure Serve)       ( progDesc "serve the web app" ))
+        <> command "develop"      (info (pure Develop)     ( progDesc "serve and watch for source file changes to reload the page" ))
+        <> command "install"      (info (pure Install)     ( progDesc "install build dependencies" ))
+        <> command "clean"        (info (pure Clean)       ( progDesc "delete all build files" ))
+        <> command "test-scripts" (info (pure TestScripts) ( progDesc "test all the scripts in this file" )) )
 
--- test :: IO ExitCode
--- test = do
---     let tests =
---             [ do
---                 actual <- execParserPure "build" parser
---                 when (Build /= actual) $ throw "bad build command parse"
---             , do
---                 actual <- execParserPure "serve" parser
---                 when (Build /= actual) $ throw "bad serve command parse"
---             ]
-
---     mapConcurrently_ tests
+test :: MonadIO m => Text -> m a -> (a -> Bool) -> Text -> m ()
+test name actual fExpected msg = do
+    result <- fExpected <$> actual
+    let errOutput = do
+            T.putStrLn "‼️ TEST FAILED ‼️"
+            throwIO (TestingException msg)
+    if result then pure () else liftIO $ do
+        stdoutSupportsANSI <- hNowSupportsANSI SYS.stdout
+        if stdoutSupportsANSI
+        then do
+            setSGR  [ SetConsoleIntensity BoldIntensity
+                    , SetColor Foreground Vivid Red
+                    ]
+            errOutput
+            setSGR [Reset]
+        else
+            errOutput
