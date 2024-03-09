@@ -1,19 +1,17 @@
 # [WIP] static-site-hello-world
 Web dev is hard. This stack gives you more tools to deal with the suck. Mostly just a template for me to copy when I make new sites.
 
-## Philosophy
-Software has bugs. The question is when do you find them?
+## Wat
 
-From most Undesirable to most Desirable places to catch your bugs and exceptions:
-Production, user-detected ➤ Production, self-detected ➤ CD ➤ Nightly CI ➤ CI ➤ develop time ➤ impossible to write
+![](diagram.png)
 
-Every one of the tools in this stack pushes a whole class of errors to be caught down to a more desirable stage.
-
-## Map
-TODO put an image here
-
-## Tools
-TODO table of tools and the errors they push
+## Build tools for your build tools
+- JavaScript built from PureScript source
+- CSS built from tailwindcss classnames in PureScriptSource
+- Initial HTML file built from running PureScript module
+- Responsive-sized .webp images built from source png or jpg images
+- All those build commands are complicated, and the hope that this endless line of bash still works dwindles quickly, so in comes scripts.hs which (optionally) tests itself on every run.
+- The install situation for all this is absurd, so we use a nix derivation to never think about it again even when we move machines.
 
 ## TODO
 - 
