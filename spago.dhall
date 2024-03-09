@@ -18,7 +18,6 @@ to generate this file without the comments in this block.
   , "exceptions"
   , "halogen"
   , "maybe"
-  , "node-fs"
   , "prelude"
   , "transformers"
   , "web-dom"
