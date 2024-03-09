@@ -9,6 +9,5 @@
 /.psa*
 /.spago
 /.stack-work
-/scripts/dist-newstyle/
-/dist
-/turtle-scripts
+/dist/
+/root/
