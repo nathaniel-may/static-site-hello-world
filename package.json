@@ -1,8 +1,9 @@
 {
-  "dependencies": {
-    "esbuild": "^0.20.1"
+  "devDependencies": {
+    "esbuild": "^0.20.1",
+    "tailwind-merge": "^2.2.1"
   },
-  "scripts":{
+  "scripts": {
     "spago-bundle-app": "spago bundle-app --to dist/index.js"
   }
 }
