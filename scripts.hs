@@ -12,6 +12,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Options.Applicative
 import System.Exit (ExitCode(..))
+import System.FilePath (replaceExtension)
 import Turtle
 
 data Command = Build | Serve | Develop | Clean deriving (Read, Show, Eq)
@@ -24,29 +25,31 @@ main = do
 -- I use `proc "mkdir" ..` instead of `mkdir` etc. becuase turtle's commands pass over failures by returning () instead of ExitCode
 run :: MonadIO m => Command -> m ()
 run = liftIO . \case
-    Build -> do
-        let npmInstall = procs "npm" [ "install" ] empty
-        let moveStuff = do
-                procs "rm" [ "-rf", "dist" ] empty
-                procs "mkdir" [ "dist/"] empty
-                -- todo generate index.html (it's not compiled so it should live somewhere speical or be generated)
-                procs "cp" [ "src/index.html", "dist/" ] empty
-                -- this is a special case of uncompiled code. it should go in a directory of raw js somewhere
-                procs "cp" [ "src/live.js", "dist/" ] empty
-                procs "cp" [ "-r", "assets/images", "dist/" ] empty
-                -- todo: the * doesn't resolve properly
-                -- procs "cp" [ "assets/favicon/*", "dist/" ] empty
-                -- todo: for file in dist/assets/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
-                -- use this pattern: pages <- forConcurrently ["url1", "url2", "url3"] $ \url -> getURL url
-        let buildStyles = procs "npx" [ "tailwindcss"
-                , "-c", "tailwind.config.js"
-                , "-i", "./src/style.css"
-                , "-o", "./dist/style.css" ] empty
-        let buildJS = procs "spago" [ "bundle-app", "--to", "dist/index.js" ] empty
-        mapConcurrently_ id [ npmInstall, moveStuff, buildStyles, buildJS ]
+    Build -> let
+        npmInstall = procs "npm" [ "install" ] empty
+        moveStuff = do
+            procs "rm" [ "-rf", "dist" ] empty
+            procs "mkdir" [ "dist/"] empty
+            -- todo generate index.html (it's not compiled so it should live somewhere speical or be generated)
+            procs "cp" [ "src/index.html", "dist/" ] empty
+            -- this is a special case of uncompiled code. it should go in a directory of raw js somewhere
+            procs "cp" [ "src/live.js", "dist/" ] empty
+            procs "cp" [ "-r", "assets/images", "dist/" ] empty
+            -- bash: cp assets/favicon/* dist/
+            sh (do file <- ls "assets/favicon/"; liftIO (procs "cp" [ T.pack file, "dist/" ] empty ))
+            -- bash: for file in dist/assets/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
+            -- TODO do concurrently?
+            sh (do file <- ls "dist/assets/images/"; liftIO (procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty ))
+        buildStyles = procs "npx" [ "tailwindcss"
+            , "-c", "tailwind.config.js"
+            , "-i", "./src/style.css"
+            , "-o", "./dist/style.css" ] empty
+        buildJS = procs "spago" [ "bundle-app", "--to", "dist/index.js" ] empty
+        in mapConcurrently_ id [ npmInstall, moveStuff, buildStyles, buildJS ]
 
     Serve   -> print "todo implement serve"
         -- look at pushd for serving in a different directory
+
     Develop -> print "todo implement develop"
     Clean   -> print "todo implement clean"
 
