@@ -1,5 +1,8 @@
 {
-  "devDependencies": {
-    "esbuild": "0.20.1"
+  "dependencies": {
+    "esbuild": "^0.20.1"
+  },
+  "scripts":{
+    "spago-bundle-app": "spago bundle-app --to dist/index.js"
   }
 }

@@ -15,7 +15,7 @@ import System.Exit (ExitCode(..))
 import System.FilePath (replaceExtension)
 import Turtle
 
-data Command = Build | Serve | Develop | Clean deriving (Read, Show, Eq)
+data Command = Build | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
 
 main :: IO ()
 main = do
@@ -44,13 +44,16 @@ run = liftIO . \case
             , "-c", "tailwind.config.js"
             , "-i", "./src/style.css"
             , "-o", "./dist/style.css" ] empty
-        buildJS = procs "spago" [ "bundle-app", "--to", "dist/index.js" ] empty
+        buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
         in mapConcurrently_ id [ npmInstall, moveStuff, buildStyles, buildJS ]
 
     Serve   -> print "todo implement serve"
         -- look at pushd for serving in a different directory
 
     Develop -> print "todo implement develop"
+
+    Install -> print "todo implement install"
+        -- npm i
 
     Clean ->
         let dirs =
@@ -74,6 +77,7 @@ parser = info
         (  command "build"   (info (pure Build)   ( progDesc "build everything" ))
         <> command "serve"   (info (pure Serve)   ( progDesc "serve the web app" ))
         <> command "develop" (info (pure Develop) ( progDesc "serve and watch for source file changes to reload the page" ))
+        <> command "install" (info (pure Install) ( progDesc "install build dependencies" ))
         <> command "clean"   (info (pure Clean)   ( progDesc "delete all build files" )) )
 
 -- test :: IO ExitCode
