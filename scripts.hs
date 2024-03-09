@@ -29,7 +29,7 @@ run = liftIO . \case
         npmInstall = procs "npm" [ "install" ] empty
         moveStuff = do
             procs "rm" [ "-rf", "dist" ] empty
-            procs "mkdir" [ "dist/"] empty
+            procs "mkdir" [ "-p", "dist/images"] empty
             -- todo generate index.html (it's not compiled so it should live somewhere speical or be generated)
             procs "cp" [ "src/index.html", "dist/" ] empty
             -- this is a special case of uncompiled code. it should go in a directory of raw js somewhere
@@ -37,9 +37,9 @@ run = liftIO . \case
             procs "cp" [ "-r", "assets/images", "dist/" ] empty
             -- bash: cp assets/favicon/* dist/
             sh (do file <- ls "assets/favicon/"; liftIO (procs "cp" [ T.pack file, "dist/" ] empty ))
-            -- bash: for file in dist/assets/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
+            -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
             -- TODO do concurrently?
-            sh (do file <- ls "dist/assets/images/"; liftIO (procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty ))
+            sh (do file <- ls "dist/images/"; liftIO (procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty ))
         buildStyles = procs "npx" [ "tailwindcss"
             , "-c", "tailwind.config.js"
             , "-i", "./src/style.css"
@@ -57,6 +57,7 @@ run = liftIO . \case
                 [ "dist/"
                 , "node_modules/"
                 , "output/"
+                , ".spago/"
                 , ".stack-work/"
                 ]
         in forConcurrently_ dirs (\dir ->
