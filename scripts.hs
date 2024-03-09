@@ -5,7 +5,7 @@
 
 module Main where
 
-import Control.Concurrent.Async (mapConcurrently_)
+import Control.Concurrent.Async (forConcurrently_, mapConcurrently_)
 import Control.Monad (when)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
@@ -51,7 +51,17 @@ run = liftIO . \case
         -- look at pushd for serving in a different directory
 
     Develop -> print "todo implement develop"
-    Clean   -> print "todo implement clean"
+
+    Clean ->
+        let dirs =
+                [ "dist/"
+                , "node_modules/"
+                , "output/"
+                , ".stack-work/"
+                ]
+        in forConcurrently_ dirs (\dir ->
+            procs "rm" [ "-rf", dir ] empty
+        )
 
 parser :: ParserInfo Command
 parser = info
