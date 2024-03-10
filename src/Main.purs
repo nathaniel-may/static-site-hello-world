@@ -27,7 +27,7 @@ main = HA.runHalogenAff do
   body <- selectElement_ "body"
   liftEffect $ replaceChildren (toElement head) []
   liftEffect $ replaceChildren (toElement body) []
-  traverse_ (\elem -> runUI (headComponent elem) unit =<< selectElement_ "head") headContents
+  traverse_ (\elem -> runUI (headComponent elem) unit head) headContents
   runUI bodyComponent unit body
 
 -- nodeMain :: Effect Unit

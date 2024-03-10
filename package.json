@@ -6,5 +6,8 @@
   },
   "scripts": {
     "spago-bundle-app": "spago bundle-app --to dist/index.js"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
   }
 }

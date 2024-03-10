@@ -62,7 +62,7 @@ run = liftIO . \case
             buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
             in view $ do view moveStuff; run (Run Install); liftIO $ mapConcurrently_ view [ buildStyles, buildJS, buildImages ]
 
-        Serve   -> print "todo implement serve"
+        Serve -> view $ do run (Run Build); pushd "dist" >> procs "npx" [ "http-server", "spago-bundle-app", "-o", "-c-1" ] empty
             -- look at pushd for serving in a different directory
 
         Develop -> print "todo implement develop"
