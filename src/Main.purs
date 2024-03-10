@@ -5,8 +5,9 @@ import Prelude
 import Control.Monad.Error.Class (throwError)
 import Data.Foldable (traverse_)
 import Data.Maybe (maybe)
+import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, delay)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
@@ -25,6 +26,9 @@ main = HA.runHalogenAff do
   HA.awaitLoad
   head <- selectElement_ "head"
   body <- selectElement_ "body"
+  -- clear any existing values and re render. 
+  -- initial html served should contain references to all the expensive assets so they can
+  -- take advantage of browser initial page loading optimiations
   liftEffect $ replaceChildren (toElement head) []
   liftEffect $ replaceChildren (toElement body) []
   traverse_ (\elem -> runUI (headComponent elem) unit head) headContents
@@ -46,9 +50,9 @@ bodyComponent =
     HH.div
       [ css "h-full leading-relaxed font-light text-lg text-warm-gray" ]
       [ HH.div
-        [ css "flex justify-center items-center" ]
+        [ css "h-full w-full flex justify-center items-center" ]
         [ HH.h1
-          [ css "font-40 font-bold" ]
+          [ css "font-7xl font-black" ]
           [ HH.text "Hello World" ]
         ]
       ]
