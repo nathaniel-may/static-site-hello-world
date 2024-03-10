@@ -3,28 +3,35 @@ module Main where
 import Prelude
 
 import Control.Monad.Error.Class (throwError)
+import Data.Foldable (traverse_)
 import Data.Maybe (maybe)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class (liftEffect)
+import Effect.Exception (error)
+import Element (replaceChildren)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Effect.Exception (error)
 import Halogen.VDom.Driver (runUI)
 import TW.TW (twMerge)
 import Web.DOM.ParentNode (QuerySelector(..))
-import Web.HTML.HTMLElement (HTMLElement)
+import Web.HTML.HTMLElement (HTMLElement, toElement)
 
 main :: Effect Unit
 main = HA.runHalogenAff do
   HA.awaitLoad
   head <- selectElement_ "head"
   body <- selectElement_ "body"
-  -- TODO these won't be empty if I build them..... how to run like normal on non-empty body?
-  _ <- runUI bodyComponent unit body
-  runUI headComponent unit head
+  liftEffect $ replaceChildren (toElement head) []
+  liftEffect $ replaceChildren (toElement body) []
+  traverse_ (\elem -> runUI (headComponent elem) unit =<< selectElement_ "head") headContents
+  runUI bodyComponent unit body
+
+-- nodeMain :: Effect Unit
+-- nodeMain = ???
 
 bodyComponent ∷ ∀ q i o m. MonadAff m => H.Component q i o m
 bodyComponent =
@@ -46,20 +53,19 @@ bodyComponent =
         ]
       ]
 
-headComponent ∷ ∀ q i o m. MonadAff m => H.Component q i o m
-headComponent =
+headComponent :: ∀ a q i o m. HH.HTML (H.ComponentSlot a m Unit) Unit -> H.Component q i o m
+headComponent elem =
   H.mkComponent
-    { initialState: const unit
+    { initialState
     , render
     , eval: H.mkEval $ H.defaultEval { handleAction = pure }
     }
   where
-  render :: ∀ state action slots. state -> H.ComponentHTML action slots m
-  render _ =
-    HH.head_ --todo
-      [ HH.title_
-        [ HH.text "Hello World" ]
-      ]
+  initialState _ = elem
+
+  render state = state
+  
+headContents = [ HH.title_ [ HH.text "Hello World" ] ]
 
 css :: ∀ r i. String -> HH.IProp (class :: String | r) i
 css = HP.class_ <<< HH.ClassName

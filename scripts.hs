@@ -46,9 +46,10 @@ run = liftIO . \case
                 -- dist is the directory the server serves from. wipe the previous build output and start over
                 procs "rm" [ "-rf", "dist" ] empty
                 mkdir "dist"
-                -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
                 -- copy whole dirs with their existing structure before moving individual files
                 procs "cp" [ "-r", "./assets/images", "dist" ] empty
+                -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
+                procs "cp" [ "./src/index.html", "dist" ] empty
                 -- copy all the favicons to the root of the server folder
                 ls "./assets/favicon" >>= (`cp` "dist")
             -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
