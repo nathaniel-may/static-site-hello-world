@@ -52,8 +52,8 @@ run = liftIO . \case
                 let dirMoves = [ ("./src", "root"), ("./test", "root"), ("./assets/images", "dist") ]
                 traverse_ (\(src, dest) -> procs "cp" [ "-r", src, dest ] empty) dirMoves
                 -- for each file in the source directory, move it or leave it
-                ls "." >>= (\path' -> let
-                    path = T.pack path'
+                inproc "find" [".", "-print"] empty >>= (\path' -> let
+                    path = lineToText path'
                     move = (path,) <$> if
                         -- skip generated files
                         | any (`T.isPrefixOf` path) builtPathsText -> Nothing
@@ -72,13 +72,17 @@ run = liftIO . \case
                             , "./.psc-ide-port"
                             , "./.gitignore"
                             , "./.git"
-                            -- these top-level directories doesn't move
-                            , "./config"
+                            , "." -- dir not a file but it's a prefix for everything
+                            ] -> Nothing
+                        -- these top-level directories doesn't move
+                        | any (`T.isPrefixOf` path)
+                            [ "./config"
                             , "./assets" 
+                            , "./.git" -- matches .gitignore too but that's fine since it doesn't move either.
                             ] -> Nothing
                         -- if the path hasn't been explicitly mapped, raise an error and don't build so every file is accounted for
                         | otherwise ->
-                            error $ "unknown source file: " <> path'
+                            error $ "unknown source file: " <> T.unpack path
                                 <> "\nPlease designate its pre-build destination."
                     in case move of
                         Just (src, dest) -> do echo (unsafeTextToLine src); procs "cp" [ src, dest ] empty
