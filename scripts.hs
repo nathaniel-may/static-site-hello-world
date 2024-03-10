@@ -43,59 +43,22 @@ run = liftIO . \case
     Run cmd -> case cmd of
         Build -> let
             moveStuff = do
-                -- root is the project root before build begins. files get copied where they belong from their tidy starting places
-                -- dist is the directory the server serves from
-                procs "rm" [ "-rf", "root", "dist" ] empty
-                procs "mkdir" [ "-p", "root", "dist/images"] empty
+                -- dist is the directory the server serves from. wipe the previous build output and start over
+                procs "rm" [ "-rf", "dist" ] empty
+                mkdir "dist"
                 -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
                 -- copy whole dirs with their existing structure before moving individual files
-                let dirMoves = [ ("./src", "root"), ("./test", "root"), ("./assets/images", "dist") ]
-                traverse_ (\(src, dest) -> procs "cp" [ "-r", src, dest ] empty) dirMoves
-                -- for each file in the source directory, move it or leave it
-                inproc "find" [".", "-print"] empty >>= (\path' -> let
-                    path = lineToText path'
-                    move = (path,) <$> if
-                        -- skip generated files
-                        | any (`T.isPrefixOf` path) builtPathsText -> Nothing
-                        -- if we already copied the whole directory, don't move the individual files
-                        | any ((`T.isPrefixOf` path) . fst) dirMoves -> Nothing
-                        -- these files move
-                        | T.isPrefixOf "./assets/favicon/" path -> Just "dist"
-                        | T.isPrefixOf "./config/" path -> Just "root"
-                        -- these files don't move
-                        | path `elem`
-                            [ "./scripts.hs"
-                            , "./README.md"
-                            , "./LICENSE"
-                            , "./diagram.png"
-                            , "./.purs-repl"
-                            , "./.psc-ide-port"
-                            , "./.gitignore"
-                            , "./.git"
-                            , "." -- dir not a file but it's a prefix for everything
-                            ] -> Nothing
-                        -- these top-level directories doesn't move
-                        | any (`T.isPrefixOf` path)
-                            [ "./config"
-                            , "./assets" 
-                            , "./.git" -- matches .gitignore too but that's fine since it doesn't move either.
-                            ] -> Nothing
-                        -- if the path hasn't been explicitly mapped, raise an error and don't build so every file is accounted for
-                        | otherwise ->
-                            error $ "unknown source file: " <> T.unpack path
-                                <> "\nPlease designate its pre-build destination."
-                    in case move of
-                        Just (src, dest) -> do echo (unsafeTextToLine src); procs "cp" [ src, dest ] empty
-                        Nothing -> pure ()
-                    )
+                procs "cp" [ "-r", "./assets/images", "dist" ] empty
+                -- copy all the favicons to the root of the server folder
+                ls "./assets/favicon" >>= (`cp` "dist")
             -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
             buildImages = do file <- ls "dist/images/"; procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty
             buildStyles = procs "npx" [ "tailwindcss"
                 , "-c", "tailwind.config.js"
-                , "-i", "./root/src/style.css"
+                , "-i", "./src/style.css"
                 , "-o", "./dist/style.css" ] empty
             -- calling npm run instead of spago bundle-app directly so spago can find `esbuild` in local node_modules
-            buildJS = pushd "./root" >> procs "npm" [ "run", "spago-bundle-app" ] empty
+            buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
             in view $ do view moveStuff; run (Run Install); liftIO $ mapConcurrently_ view [ buildStyles, buildJS, buildImages ]
 
         Serve   -> print "todo implement serve"
@@ -103,7 +66,7 @@ run = liftIO . \case
 
         Develop -> print "todo implement develop"
 
-        Install -> view $ pushd "./root" >> procs "npm" [ "install" ] empty
+        Install -> view $ procs "npm" [ "install" ] empty
 
         -- todo overkill to concurrently do this
         Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
@@ -126,7 +89,6 @@ builtPaths =
     , "./output"
     , "./.spago"
     , "./.stack-work"
-    , "./root"
     ]
 
 builtPathsText :: [Text]
