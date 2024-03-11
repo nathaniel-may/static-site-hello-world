@@ -22,7 +22,7 @@ import qualified System.IO as SYS
 import Turtle
 
 data App = Run Command | Test deriving (Read, Show, Eq)
-data Command = Build | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
+data Command = Build | GenerateHTML | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
 
 newtype ScriptException = ScriptException ByteString deriving (Show)
 instance Exception ScriptException
@@ -41,28 +41,10 @@ run = liftIO . \case
     -- todo: optionally run the tests before every command execution
     -- Run cmd -> run Test *> case cmd of
     Run cmd -> case cmd of
-        Build -> let
-            moveStuff = do
-                -- dist is the directory the server serves from. wipe the previous build output and start over
-                procs "rm" [ "-rf", "dist" ] empty
-                mkdir "dist"
-                -- copy whole dirs with their existing structure before moving individual files
-                procs "cp" [ "-r", "./assets/images", "dist" ] empty
-                -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
-                procs "cp" [ "./src/index.html", "dist" ] empty
-                -- copy all the favicons to the root of the server folder
-                ls "./assets/favicon" >>= (`cp` "dist")
-            -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
-            buildImages = do file <- ls "dist/images/"; procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty
-            buildStyles = procs "npx" [ "tailwindcss"
-                , "-c", "tailwind.config.js"
-                , "-i", "./src/style.css"
-                , "-o", "./dist/style.css" ] empty
-            -- calling npm run instead of spago bundle-app directly so spago can find `esbuild` in local node_modules
-            buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
-            in view $ do view moveStuff; run (Run Install); liftIO $ mapConcurrently_ view [ buildStyles, buildJS, buildImages ]
+        Build ->
+            view $ do view moveStuff; run (Run Install); liftIO $ mapConcurrently_ view [ buildStyles, buildJS, buildImages ]
 
-        Serve -> view $ do run (Run Build); pushd "dist" >> procs "npx" [ "http-server", "spago-bundle-app", "-o", "-c-1" ] empty
+        Serve -> view $ do run (Run Build); pushd "dist" >> procs "npx" [ "http-server", "-o", "-c-1" ] empty
             -- look at pushd for serving in a different directory
 
         Develop -> print "todo implement develop"
@@ -71,6 +53,10 @@ run = liftIO . \case
 
         -- todo overkill to concurrently do this
         Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
+
+    -- doesn't build everything like images and css. this will render poorly, but it will still get the HTML properly
+        GenerateHTML ->
+            view $ do view moveStuff; run (Run Install); liftIO $ view $ procs "npm" [ "run", "spago-bundle-app-generate-html" ] empty
 
     Test -> let
         tests =
@@ -81,6 +67,26 @@ run = liftIO . \case
             ]
         in do
             mapConcurrently_ id tests
+
+    where
+    moveStuff = do
+        -- dist is the directory the server serves from. wipe the previous build output and start over
+        procs "rm" [ "-rf", "dist" ] empty
+        mkdir "dist"
+        -- copy whole dirs with their existing structure before moving individual files
+        procs "cp" [ "-r", "./assets/images", "dist" ] empty
+        -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
+        procs "cp" [ "./src/index.html", "dist" ] empty
+        -- copy all the favicons to the root of the server folder
+        ls "./assets/favicon" >>= (`cp` "dist")
+    -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
+    buildImages = do file <- ls "dist/images/"; procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty
+    buildStyles = procs "npx" [ "tailwindcss"
+        , "-c", "tailwind.config.js"
+        , "-i", "./src/style.css"
+        , "-o", "./dist/style.css" ] empty
+    -- calling npm run instead of spago bundle-app directly so spago can find `esbuild` in local node_modules
+    buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
 
 -- leading "./" and lack of trailing "/" is necessary to match out put of find
 builtPaths :: [FilePath]
@@ -102,12 +108,13 @@ parser = info
     where
     subcommands :: Parser App
     subcommands = subparser
-        (  command "build"        (info (pure $ Run Build)   ( progDesc "build everything" ))
-        <> command "serve"        (info (pure $ Run Serve)   ( progDesc "serve the web app" ))
-        <> command "develop"      (info (pure $ Run Develop) ( progDesc "serve and watch for source file changes to reload the page" ))
-        <> command "install"      (info (pure $ Run Install) ( progDesc "install build dependencies" ))
-        <> command "clean"        (info (pure $ Run Clean)   ( progDesc "delete all build files" ))
-        <> command "test-scripts" (info (pure Test)          ( progDesc "test all the scripts in this file" )) )
+        (  command "build"         (info (pure $ Run Build)        ( progDesc "build everything" ))
+        <> command "generate-html" (info (pure $ Run GenerateHTML) ( progDesc "generate the initial index.html file for faster load times" ))
+        <> command "serve"         (info (pure $ Run Serve)        ( progDesc "serve the web app" ))
+        <> command "develop"       (info (pure $ Run Develop)      ( progDesc "serve and watch for source file changes to reload the page" ))
+        <> command "install"       (info (pure $ Run Install)      ( progDesc "install build dependencies" ))
+        <> command "clean"         (info (pure $ Run Clean)        ( progDesc "delete all build files" ))
+        <> command "test-scripts"  (info (pure Test)               ( progDesc "test all the scripts in this file" )) )
 
 for :: Functor f => f a -> (a -> b) -> f b
 for = flip fmap

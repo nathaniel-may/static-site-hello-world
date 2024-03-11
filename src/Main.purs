@@ -8,9 +8,10 @@ import Data.Int.Bits (xor)
 import Data.Maybe (maybe)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
-import Effect.Aff (Aff, delay)
+import Effect.Aff (Aff, delay, launchAff_)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (liftEffect)
+import Effect.Class.Console (log)
 import Effect.Exception (error)
 import Element (replaceChildren)
 import Halogen as H
@@ -32,9 +33,6 @@ main = HA.runHalogenAff do
   liftEffect $ replaceChildren (toElement html) []
   -- add each child of html (i.e. - head, body as described in headContents) as its own component
   traverse_ (\elem -> runUI (rootComponent elem) unit html) rootContents
-
--- nodeMain :: Effect Unit
--- nodeMain = ???
 
 rootComponent :: ∀ a q i o m. HH.HTML (H.ComponentSlot a m Unit) Unit -> H.Component q i o m
 rootComponent elem = 

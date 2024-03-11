@@ -14,10 +14,12 @@ to generate this file without the comments in this block.
 , dependencies =
   [ "aff"
   , "console"
+  , "datetime"
   , "effect"
   , "exceptions"
   , "foldable-traversable"
   , "halogen"
+  , "integers"
   , "maybe"
   , "prelude"
   , "transformers"

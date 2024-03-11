@@ -7,3 +7,9 @@ export const replaceChildren = function (elem) {
         };
     };
 }
+
+export const outerHTML = function (elem) {
+    return function () {
+        return elem.outerHTML;
+    };
+}
