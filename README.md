@@ -3,7 +3,7 @@ Web dev is hard. This stack gives you more tools to deal with the suck. Mostly j
 
 ## Wat
 
-![](diagram.png)
+![](diagram.svg)
 
 ## Build tools for your build tools
 - JavaScript built from PureScript source
