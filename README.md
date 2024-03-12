@@ -18,7 +18,5 @@ Web dev is hard. This stack gives you more tools to deal with the suck. Mostly j
 ## TODO
 - use formatters
 - minify for prod
-- local lighthouse audit
 - add 404
-- automate generating responsive sized webp images
-- create local http server for receiving the initial generated html as a string to go on disk
+- automate generating responsively-sized images
