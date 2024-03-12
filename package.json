@@ -5,8 +5,7 @@
     "tailwindcss": "^3.4.1"
   },
   "scripts": {
-    "spago-bundle-app": "spago bundle-app --to dist/index.js",
-    "spago-bundle-app-generate-html": "spago bundle-app -m GenerateInitialHTML --to dist/index.js"
+    "spago-bundle-app": "spago bundle-app --to dist/index.js"
   },
   "dependencies": {
     "http-server": "^14.1.1"

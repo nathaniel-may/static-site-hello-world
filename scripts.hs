@@ -1,11 +1,12 @@
 #!/usr/bin/env stack
 -- stack --install-ghc runghc --package turtle
 
-{-# LANGUAGE LambdaCase, OverloadedStrings, MultiWayIf #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings #-}
 
 module Main where
 
-import Control.Concurrent.Async (forConcurrently_, mapConcurrently_)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (Async, uninterruptibleCancel, cancel, forConcurrently_, mapConcurrently_, withAsync)
 import Control.Exception (Exception(..), throwIO)
 import Control.Monad (when)
 import Data.ByteString (ByteString)
@@ -35,7 +36,6 @@ main = do
     app <- customExecParser (prefs showHelpOnEmpty) parser
     run app
 
--- I use `proc "mkdir" ..` instead of `mkdir` etc. becuase turtle's commands pass over failures by returning () instead of ExitCode
 run :: MonadIO m => App -> m ()
 run = liftIO . \case
     -- todo: optionally run the tests before every command execution
@@ -55,9 +55,28 @@ run = liftIO . \case
         Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
 
     -- doesn't build everything like images and css. this will render poorly, but it will still get the HTML properly
-        GenerateHTML ->
-            view $ do view moveStuff; run (Run Install); liftIO $ view $ procs "npm" [ "run", "spago-bundle-app-generate-html" ] empty
+        GenerateHTML -> sh $ do
+            view moveStuff
+            buildJS
+            run (Run Install)
+            liftIO $ withAsync 
+                (sh $ pushd "dist" >> procs "npx" [ "http-server",  "-c-1", "--port", "8105" ] empty)
+                -- give the server half a second to load everything
+                (\server -> threadDelay 500000 *> (do
+                    -- use headless chrome to generate the html and append each line of the html to the dist file
+                    -- todo minify it?
+                    -- todo this path is mac specific
+                    let line = inproc 
+                            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                            -- TODO this server doesn't actually get cancelled. The port remains in use. 
+                            [ "--headless=new", "--dump-dom", "http://127.0.0.1:8105" ]
+                            empty
+                    sh (output "index2.html" line)
+                    -- kill the server once all the lines have been dumped
+                    ) *> uninterruptibleCancel server )
+            mv "dist/index2.html" "dist/index.html"
 
+    -- todo write meaningful tests
     Test -> let
         tests =
             [ test "build command parses"
@@ -69,6 +88,7 @@ run = liftIO . \case
             mapConcurrently_ id tests
 
     where
+    moveStuff :: Shell ()
     moveStuff = do
         -- dist is the directory the server serves from. wipe the previous build output and start over
         procs "rm" [ "-rf", "dist" ] empty
@@ -80,12 +100,15 @@ run = liftIO . \case
         -- copy all the favicons to the root of the server folder
         ls "./assets/favicon" >>= (`cp` "dist")
     -- bash: for file in dist/images/*; do cwebp -quiet -q 80 \"$file\" -o \"${file%.*}.webp\"; done
+    buildImages :: Shell ()
     buildImages = do file <- ls "dist/images/"; procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty
+    buildStyles :: Shell ()
     buildStyles = procs "npx" [ "tailwindcss"
         , "-c", "tailwind.config.js"
         , "-i", "./src/style.css"
         , "-o", "./dist/style.css" ] empty
     -- calling npm run instead of spago bundle-app directly so spago can find `esbuild` in local node_modules
+    buildJS :: Shell ()
     buildJS = procs "npm" [ "run", "spago-bundle-app" ] empty
 
 -- leading "./" and lack of trailing "/" is necessary to match out put of find
