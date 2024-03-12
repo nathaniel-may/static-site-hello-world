@@ -60,20 +60,21 @@ run = liftIO . \case
             buildJS
             run (Run Install)
             liftIO $ withAsync 
-                (sh $ pushd "dist" >> procs "npx" [ "http-server",  "-c-1", "--port", "8105" ] empty)
-                -- give the server half a second to load everything
-                (\server -> threadDelay 500000 *> (do
+                (sh $ pushd "dist" >> procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
+                -- give the server 0.1s head start to load everything
+                (\server -> threadDelay 100000 *> do
                     -- use headless chrome to generate the html and append each line of the html to the dist file
                     -- todo minify it?
-                    -- todo this path is mac specific
                     let line = inproc 
-                            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-                            -- TODO this server doesn't actually get cancelled. The port remains in use. 
-                            [ "--headless=new", "--dump-dom", "http://127.0.0.1:8105" ]
+                            -- todo this path is mac specific
+                            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" 
+                            [ "--headless=new", "--dump-dom", "http://127.0.0.1:8111" ]
                             empty
                     sh (output "index2.html" line)
                     -- kill the server once all the lines have been dumped
-                    ) *> uninterruptibleCancel server )
+                    -- TODO this doesn't work because the port remains in use
+                    uninterruptibleCancel server
+                )
             mv "dist/index2.html" "dist/index.html"
 
     -- todo write meaningful tests
