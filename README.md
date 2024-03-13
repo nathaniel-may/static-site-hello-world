@@ -17,6 +17,6 @@ Web dev is hard. This stack gives you more tools to deal with the suck. Mostly j
 
 ## TODO
 - use formatters
-- minify for prod
 - add 404
 - automate generating responsively-sized images
+- make nix derivation
