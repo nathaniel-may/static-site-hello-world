@@ -116,8 +116,9 @@ moveStuff = do
     mkdir "dist"
     -- copy whole dirs with their existing structure before moving individual files
     procs "cp" [ "-r", "./assets/images", "dist" ] empty
-    -- todo generate index.html (it's not compiled so it should live somewhere special or be generated)
+    -- move individual files
     procs "cp" [ "./src/index.html", "dist" ] empty
+    procs "cp" [ "./src/404.html", "dist" ] empty
     -- copy all the favicons to the root of the server folder
     ls "./assets/favicon" >>= (`cp` "dist")
 

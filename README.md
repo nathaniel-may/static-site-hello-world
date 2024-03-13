@@ -16,6 +16,6 @@ Web dev is hard. This stack gives you more tools to deal with the suck. Mostly j
 - Installing this barrel of monkeys by hand sounds like a shit way to spend an afternoon, so we use a nix derivation instead.
 
 ## TODO
-- add 404
 - automate generating responsively-sized images
 - make nix derivation
+- cleanup inline todos
