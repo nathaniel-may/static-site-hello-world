@@ -54,14 +54,16 @@ run = liftIO . \case
         -- todo overkill to concurrently do this
         Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
 
-    -- doesn't build everything like images and css. this will render poorly, but it will still get the HTML properly
+        -- doesn't build everything like images and css. this will render poorly, but it will still get the HTML properly
+        -- TODO trade this command for build vs build-release
         GenerateHTML -> sh $ do
-            view moveStuff
+            sh moveStuff
             buildJS
             run (Run Install)
+            pushd "dist"
             liftIO $ withAsync 
-                (sh $ pushd "dist" >> procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
-                -- give the server 0.1s head start to load everything
+                (sh $ procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
+                -- give the server 0.1s head start to load everything TODO is this necessary?
                 (\server -> threadDelay 100000 *> do
                     -- use headless chrome to generate the html and append each line of the html to the dist file
                     -- todo minify it?
@@ -72,10 +74,11 @@ run = liftIO . \case
                             empty
                     sh (output "index2.html" line)
                     -- kill the server once all the lines have been dumped
-                    -- TODO this doesn't work because the port remains in use
                     uninterruptibleCancel server
+                    -- overwrite the old file with the new contents
+                    mv "index2.html" "index.html"
                 )
-            mv "dist/index2.html" "dist/index.html"
+            
 
     -- todo write meaningful tests
     Test -> let
