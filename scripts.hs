@@ -24,7 +24,7 @@ import qualified System.IO as SYS
 import Turtle
 
 data App = Run Command | Test deriving (Read, Show, Eq)
-data Command = Build | BuildRelease | Serve | Develop | Install | Clean deriving (Read, Show, Eq)
+data Command = Build | BuildRelease | Serve | Develop | Fmt | Install | Clean deriving (Read, Show, Eq)
 
 newtype ScriptException = ScriptException ByteString deriving (Show)
 instance Exception ScriptException
@@ -46,6 +46,7 @@ run = liftIO . \case
         BuildRelease -> sh buildRelease
         Serve -> view $ do run (Run Build); pushd "dist" >> procs "npx" [ "http-server", "-o", "-c-1" ] empty
         Develop -> print "todo implement develop"
+        Fmt -> procs "purs-tidy" ["format-in-place", "src/**/*.purs"] empty
         Install -> view $ procs "npm" [ "install" ] empty
         -- todo overkill to concurrently do this
         Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
@@ -144,6 +145,7 @@ parser = info
         <> command "build-release" (info (pure $ Run BuildRelease) ( progDesc "build with optimiations for deploying to production" ))
         <> command "serve"         (info (pure $ Run Serve)        ( progDesc "serve the web app" ))
         <> command "develop"       (info (pure $ Run Develop)      ( progDesc "serve and watch for source file changes to reload the page" ))
+        <> command "fmt"           (info (pure $ Run Fmt)          ( progDesc "format *.purs files in place" ))
         <> command "install"       (info (pure $ Run Install)      ( progDesc "install build dependencies" ))
         <> command "clean"         (info (pure $ Run Clean)        ( progDesc "delete all build files" ))
         <> command "test-scripts"  (info (pure Test)               ( progDesc "test all the scripts in this file" )) )

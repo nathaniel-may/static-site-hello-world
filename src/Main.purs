@@ -35,7 +35,7 @@ main = HA.runHalogenAff do
   traverse_ (\elem -> runUI (rootComponent elem) unit html) rootContents
 
 rootComponent :: ∀ a q i o m. HH.HTML (H.ComponentSlot a m Unit) Unit -> H.Component q i o m
-rootComponent elem = 
+rootComponent elem =
   H.mkComponent
     { initialState
     , render
@@ -47,16 +47,16 @@ rootComponent elem =
 
 rootContents =
   [ HH.head_
-    [ HH.title_ [ HH.text "Hello World" ] ]
+      [ HH.title_ [ HH.text "Hello World" ] ]
   , HH.body
-    [ css "h-full leading-relaxed font-light text-lg text-warm-gray"]
-    [ HH.div
-      [ css "h-full w-full flex justify-center items-center" ]
-      [ HH.h1
-        [ css "font-7xl font-black" ]
-        [ HH.text "Hello World" ]
+      [ css "h-full leading-relaxed font-light text-lg text-warm-gray" ]
+      [ HH.div
+          [ css "h-full w-full flex justify-center items-center" ]
+          [ HH.h1
+              [ css "font-7xl font-black" ]
+              [ HH.text "Hello World" ]
+          ]
       ]
-    ]
   ]
 
 css :: ∀ r i. String -> HH.IProp (class :: String | r) i
@@ -68,5 +68,5 @@ cssMerge = css <<< twMerge
 -- | Finds the element and throws if it cannot be found. Call after the document has loaded.
 selectElement_ :: String -> Aff HTMLElement
 selectElement_ name = do
-    elem <- HA.selectElement (QuerySelector name)
-    maybe (throwError <<< error $ "No elements matched the query selector `" <> name <> "`") pure elem
+  elem <- HA.selectElement (QuerySelector name)
+  maybe (throwError <<< error $ "No elements matched the query selector `" <> name <> "`") pure elem
