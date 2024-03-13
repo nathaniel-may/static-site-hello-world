@@ -6,7 +6,7 @@
 module Main where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (Async, uninterruptibleCancel, cancel, forConcurrently_, mapConcurrently_, withAsync)
+import Control.Concurrent.Async (Async, async, forConcurrently_, mapConcurrently_, withAsync)
 import Control.Exception (Exception(..), throwIO)
 import Control.Monad (when)
 import Control.Monad.Managed (MonadManaged)
@@ -90,26 +90,23 @@ buildRelease = do
     buildImages = do
         file <- ls "dist/images/"
         procs "cwebp" [ "-quiet", "-q", "80", T.pack file, "-o", T.pack $ replaceExtension file "webp" ] empty
-    genHTML :: Shell ()
-    genHTML = do
-        pushd "dist"
-        liftIO $ withAsync 
-            (sh $ procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
-            -- give the server 0.1s head start to load everything TODO is this necessary?
-            (\server -> do
-                -- use headless chrome to generate the html and append each line of the html to the dist file
-                -- todo minify it?
+    genHTML =
+        -- ignoring handle because npm doesn't pass through termination signals. We'll kill via the OS
+       liftIO $ withAsync
+            (sh $ pushd "dist" *> procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
+            (\_ -> do
                 let line = inproc 
                         -- todo this path is mac specific
                         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" 
                         [ "--headless=new", "--dump-dom", "http://127.0.0.1:8111" ]
                         empty
                 sh (output "index2.html" line)
-                -- kill the server once all the lines have been dumped
-                uninterruptibleCancel server
+                -- kill the server once all the lines have been dumped. npx doesn't passthrough termination signals,
+                -- so we can't have nice things like process handles and information on when or if the process ended.
+                sh $ procs "killall" ["http-server"] empty
                 -- overwrite the old file with the new contents
-                mv "index2.html" "index.html"
-            )
+                mv "index2.html" "index.html" )
+        
 
 moveStuff :: Shell ()
 moveStuff = do
