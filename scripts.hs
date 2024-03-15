@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
--- stack --install-ghc runghc --package turtle
+-- stack --resolver lts-21.24 --no-install-ghc --system-ghc runghc --package turtle
 
 {-# LANGUAGE LambdaCase, OverloadedStrings #-}
 
@@ -164,7 +164,7 @@ test name actual fExpected msg = do
             T.putStrLn "‼️ TEST FAILED ‼️"
             throwIO (TestingException msg)
     if result then pure () else liftIO $ do
-        stdoutSupportsANSI <- hNowSupportsANSI SYS.stdout
+        stdoutSupportsANSI <- hSupportsANSI SYS.stdout
         if stdoutSupportsANSI
         then do
             setSGR  [ SetConsoleIntensity BoldIntensity
