@@ -19,4 +19,3 @@ One day I will learn nix in earnest, but today is not that day. Installing this 
 ## TODO
 - learn nix
 - automate generating responsively-sized images
-- cleanup inline todos

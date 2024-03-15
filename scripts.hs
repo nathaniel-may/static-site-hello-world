@@ -39,8 +39,7 @@ main = do
 
 run :: MonadIO m => App -> m ()
 run = liftIO . \case
-    -- todo: optionally run the tests before every command execution
-    -- Run cmd -> run Test *> case cmd of
+    Test -> mapConcurrently_ id tests
     Run cmd -> case cmd of
         Build -> sh build
         BuildRelease -> sh buildRelease
@@ -48,19 +47,7 @@ run = liftIO . \case
         Develop -> print "todo implement develop"
         Fmt -> procs "purs-tidy" ["format-in-place", "src/**/*.purs"] empty
         Install -> view $ procs "npm" [ "install" ] empty
-        -- todo overkill to concurrently do this
-        Clean -> forConcurrently_ builtPaths (\dir -> procs "rm" [ "-rf", T.pack dir ] empty )
-                
-    -- todo write meaningful tests
-    Test -> let
-        tests =
-            [ test "build command parses"
-                (handleParseResult $ execParserPure (prefs showHelpOnEmpty) parser [ "build" ] )
-                (== Run Build)
-                "expected build input to produce Build result"
-            ]
-        in do
-            mapConcurrently_ id tests
+        Clean -> traverse_ (\dir -> procs "rm" [ "-rf", T.pack dir ] empty ) builtPaths
 
 build :: Shell ()
 build =
@@ -97,7 +84,7 @@ buildRelease = do
             (sh $ pushd "dist" *> procs "npx" [ "http-server",  "-c-1", "--port", "8111" ] empty)
             (\_ -> do
                 let line = inproc 
-                        -- todo this path is mac specific
+                        -- todo this path is mac specific, treat headless chrome as a dependency instead
                         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" 
                         [ "--headless=new", "--dump-dom", "http://127.0.0.1:8111" ]
                         empty
@@ -174,3 +161,12 @@ test name actual fExpected msg = do
             setSGR [Reset]
         else
             errOutput
+
+-- todo write meaningful tests
+tests :: [IO ()]
+tests =
+    [ test "build command parses"
+        (handleParseResult $ execParserPure (prefs showHelpOnEmpty) parser [ "build" ] )
+        (== Run Build)
+        "expected build input to produce Build result"
+    ]
