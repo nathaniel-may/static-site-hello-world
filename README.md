@@ -13,9 +13,10 @@ Web dev is hard. This stack gives you more tools to deal with the suck. Mostly j
 ## Build Tools For Your Build Tools
 
 - Turtle: My faith in bash scripts that curve over the horizon dwindles quickly
-- Installing this barrel of monkeys by hand sounds like a shit way to spend an afternoon, so we use a nix derivation instead.
+  
+One day I will learn nix in earnest, but today is not that day. Installing this barrel of monkeys by hand sounds like a sad way to spend an afternoon, so a shell.nix would make a ton of sense- if I could get one to work.
 
 ## TODO
+- learn nix
 - automate generating responsively-sized images
-- make nix derivation
 - cleanup inline todos
